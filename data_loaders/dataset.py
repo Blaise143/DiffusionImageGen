@@ -1,10 +1,7 @@
-import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import os
 import matplotlib.pyplot as plt
-from torchvision.transforms.functional import pil_to_tensor
 from PIL import Image
 
 class CustomData(Dataset):
@@ -15,6 +12,7 @@ class CustomData(Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x[:3, :, :] if x.size(0) > 3 else x)
         ])
 
     def __len__(self):
@@ -25,8 +23,6 @@ class CustomData(Dataset):
         image = Image.open(path)
         image = self.transform(image)
         return image
-
-
 
 
 if __name__ =="__main__":
