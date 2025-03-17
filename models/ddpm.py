@@ -1,24 +1,27 @@
 import torch
 import torch.nn as nn
+from diffusers import UNet2DConditionModel, UNet2DModel
+from .noise_scheduler import NoiseScheduler
 
-class NoiseScheduler(nn.Module):
-    def __init__(self, time_steps: int) -> None:
+
+class DenoisingModel(nn.Module):
+    def __init__(self, time_steps: int, sample_size: int, in_channels: int=3, out_channels: int=3):
         super().__init__()
-        self.betas = torch.linspace(0.0001,0.02,steps=time_steps)
-        self.alphas = 1-self.betas
-        self.alpha_ba = torch.cumprod(self.alphas, dim =0)#[-1]
-        self.alpha_bar_sqrt = torch.sqrt(self.alpha_ba)
-        self.one_minus_alpha_bar_sqrt = torch.sqrt(1 - self.alpha_ba)
+        self.noise_scheduler = NoiseScheduler(time_steps)
+        self.unet =  UNet2DModel(
+            sample_size=sample_size,
+            in_channels=in_channels,
+            out_channels=out_channels,
+            layers_per_block=1,
+            block_out_channels=(32, 64, 128),
+            down_block_types=("DownBlock2D", "AttnDownBlock2D", "AttnDownBlock2D"),
+            up_block_types=("AttnUpBlock2D", "AttnUpBlock2D", "UpBlock2D"),
+        )
 
     def forward(self, x: torch.Tensor, t: int):
-        noise = torch.randn_like(x)
-        return self.alpha_bar_sqrt[t]*x + self.one_minus_alpha_bar_sqrt[t]*noise
-
-
-
-
-
-
+        noisy_x = self.noise_scheduler(x, t)
+        denoised_x = self.unet(noisy_x, timestep=t)
+        return denoised_x
 
 
 if __name__ == "__main__":
