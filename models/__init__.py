@@ -1,1 +1,1 @@
-from .ddpm import NoiseScheduler
+from .ddpm import DenoisingModel
